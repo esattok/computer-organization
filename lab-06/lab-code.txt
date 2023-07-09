@@ -1,0 +1,526 @@
+## CS224
+## Section No: 5
+## Spring 2021
+## Lab No: 6
+## Esad İsmail Tök/21801679
+
+
+## Author: Esad İsmail Tök
+## Preliminary Work part1.asm Performs matrix operations with the user interface (menu)
+## 
+## a0 - First argument
+## a1 - Second argument
+## s0, s1, s2, s3, s4, s5, s6, s7 - saved registeres used in the subprograms
+## v0 - First return value
+## v1 - second return value
+## 
+
+# Text Segment
+	.text
+	.globl __main
+	
+__main:
+	
+menuLoop:
+	# Display the menu
+	jal showMenu
+	
+	# Prompt user to choose the option
+	li $v0, 4
+	la $a0, message
+	syscall
+	
+	# Take the input
+	li $v0, 5
+	syscall
+	
+	# Choose among the options
+	beq $v0, 1, op1
+	beq $v0, 2, op2
+	beq $v0, 3, op3
+	beq $v0, 4, op4
+	beq $v0, 5, op5
+	beq $v0, 6, op6
+	
+op1:
+	li $v0, 4
+	la $a0, getDim
+	syscall
+	
+	li $v0, 5
+	syscall
+	
+	move $s1, $v0 # $s1 will hold the dimension of the array throughout the program
+	move $a0, $v0
+	
+	jal createArray
+	move $s0, $v0 # $s0 will hold the start address of the array throughout the program
+	
+	
+	li $v0, 4
+	la $a0, isCreated
+	syscall
+	
+	j endOptions 
+	
+op2:
+	move $a0, $s0
+	move $a1, $s1
+	
+	jal displayArray
+	
+	li $v0, 4
+	la $a0, endl
+	syscall
+	
+	j endOptions 
+	
+op3:
+	li $v0, 4
+	la $a0, getRow
+	syscall
+	
+	li $v0, 5
+	syscall
+	
+	move $t0, $v0 # Row
+	
+	li $v0, 4
+	la $a0, getColumn
+	syscall
+	
+	li $v0, 5
+	syscall
+	
+	move $t1, $v0 # Column
+	
+	# Filling parameters
+	move $a0, $t0
+	move $a1, $t1
+	move $a2, $s1
+	move $a3, $s0
+	
+	jal getData
+	move $t2, $v0
+	
+	li $v0, 4
+	la $a0, getValue
+	syscall
+	
+	li $v0, 1
+	move $a0, $t2
+	syscall
+	
+	li $v0, 4
+	la $a0, endl
+	syscall
+	li $v0, 4
+	la $a0, endl
+	syscall
+	
+	j endOptions 
+	
+op4:
+	li $v0, 4
+	la $a0, getAvgRow
+	syscall
+	
+	move $a0, $s0
+	move $a1, $s1
+	
+	jal avgRow
+	move $t3, $v0 # Holds the average value
+	
+	li $v0, 1
+	move $a0, $t3
+	syscall
+	
+	li $v0, 4
+	la $a0, endl
+	syscall
+	li $v0, 4
+	la $a0, endl
+	syscall
+	
+	j endOptions 
+	
+	
+op5:
+	li $v0, 4
+	la $a0, getAvgCol
+	syscall
+	
+	move $a0, $s0
+	move $a1, $s1
+	
+	jal avgCol
+	move $t4, $v0 # Holds the average value
+	
+	li $v0, 1
+	move $a0, $t4
+	syscall
+	
+	li $v0, 4
+	la $a0, endl
+	syscall
+	li $v0, 4
+	la $a0, endl
+	syscall
+	
+	j endOptions 
+	
+op6:
+	li $v0, 4
+	la $a0, quit
+	syscall
+	
+	j exitProgram # End of the program
+	
+	
+endOptions:
+	j menuLoop # Go back to the menu again
+	
+exitProgram: # End of the program
+	
+	
+	# End the program
+	li $v0, 10
+	syscall
+	
+	
+	
+	
+	
+# Function to display the menu
+showMenu:
+	li $v0, 4
+	la $a0 lines
+	syscall
+	
+	la $a0 menuText
+	syscall
+	
+	la $a0 option1
+	syscall
+	
+	la $a0 option2
+	syscall
+	
+	la $a0 option3
+	syscall
+	
+	la $a0 option4
+	syscall
+	
+	la $a0 option5
+	syscall
+	
+	la $a0 option6
+	syscall
+	
+	la $a0 lines
+	syscall
+	
+	jr $ra # Go back to main function
+	
+	
+# Function to create the array
+# $a0 -> dimension of the array
+# $v0 -> start address of the array
+createArray:
+	addi $sp, $sp, -20
+	sw $s0, 0($sp)
+	sw $s1, 4($sp)
+	sw $s2, 8($sp)
+	sw $s3, 12($sp)
+	sw $s4, 16($sp)
+	
+	# First allocate the memory
+	move $s0, $a0 
+	mul $s0, $s0, $s0 # s0 holds the number of items
+	
+	mul $a0, $s0, 4 # a0 is the number of bytes
+	li $v0, 9
+	syscall
+	
+	move $s1, $v0 # s1 hold the start address of the array
+	move $s4, $v0 # s4 hold the start address of the array to be returned
+	addi $s2, $0, 1 # s2 is the incrementor  
+	
+	
+	# Filling the array with consequtive values
+fillArr:
+	sle $s3, $s2, $s0
+	beq $s3, $0 endFillArr
+	
+	sw $s2, 0($s1)
+	addi $s2, $s2, 1 # Increment the counter
+	addi $s1, $s1, 4 # switch to the next location
+	j fillArr
+endFillArr:
+
+	move $v0, $s4 # Return value
+	
+	lw $s0, 0($sp)
+	lw $s1, 4($sp)
+	lw $s2, 8($sp)
+	lw $s3, 12($sp)
+	lw $s4, 16($sp)
+	addi $sp, $sp, 20
+	
+	jr $ra # Go back to the main function
+	
+# Additional Function that displays the array in a matrix form
+# $a0 -> start address
+# $a1 -> dimension
+displayArray:
+	addi $sp, $sp, -24
+	sw $s0, 0($sp)
+	sw $s1, 4($sp)
+	sw $s2, 8($sp)
+	sw $s3, 12($sp)
+	sw $s4, 16($sp)
+	sw $s5, 20($sp)
+	
+	mul $s0, $a1, $a1 # $s0 is the matrix size
+	addi $s1, $0, 1 # Iterator
+	move $s3, $a0 # $s3 is the start address
+	
+	li $v0, 4
+	la $a0 dispMsg
+	syscall
+	
+dispArr:
+	sle $s2, $s1, $s0
+	beq $s2, $0 endDispArr
+	
+	li $v0, 1
+	lw $a0, 0($s3)
+	syscall
+	
+	li $v0, 4
+	la $a0 space
+	syscall
+	
+	# Deciding the end line
+	div $s1, $a1
+	mfhi $s4
+	
+	bne $s4, $0 skipEndLine
+	li $v0, 4
+	la $a0 endl
+	syscall
+skipEndLine:
+	
+	addi $s1, $s1, 1 # Increment iterator
+	addi $s3, $s3, 4 # Get the next location
+	j dispArr
+endDispArr:
+	
+	lw $s0, 0($sp)
+	lw $s1, 4($sp)
+	lw $s2, 8($sp)
+	lw $s3, 12($sp)
+	lw $s4, 16($sp)
+	lw $s5, 20($sp)
+	addi $sp, $sp, 24
+	
+	jr $ra # Go back to the main function
+	
+	
+	
+	
+	
+# Function to return the value in the entered array location
+# $a0 -> row index
+# $a1 -> column index
+# $a2 -> Dimension
+# $a3 -> Start address of the array
+# $v0 -> returns the data in the entered position
+getData:
+	addi $sp, $sp, -16
+	sw $s0, 0($sp)
+	sw $s1, 4($sp)
+	sw $s2, 8($sp)
+	sw $s3, 12($sp)
+	
+	
+	move $s0, $a0 # $s0 hold the row index 
+	move $s1, $a1 # $s1 hold the column index
+	move $s2, $a2 # $s2 hold the matrix dimension
+	
+	addi $s0, $s0, -1 # (i - 1)
+	mul $s0, $s0, $s2 # (i - 1) * N
+	mul $s0, $s0, 4 # (i - 1) * N * 4
+	
+	addi $s1, $s1, -1 # (j - 1)
+	mul $s1, $s1, 4 # (j - 1) * 4
+	
+	add $s3, $s0, $s1 # (i - 1) * N * 4 + (j - 1) * 4
+	add $s3, $s3, $a3 # The real array address for the value
+	lw $v0, 0($s3) # Retrieve the item in the memory to the return value register
+	
+	lw $s0, 0($sp)
+	lw $s1, 4($sp)
+	lw $s2, 8($sp)
+	lw $s3, 12($sp)
+	addi $sp, $sp, 16
+	
+	jr $ra # Go back to the main function
+	
+# Function that finds the average of the matrix items in a row major order
+# $a0 -> Start address of the array
+# $a1 -> Dimension of the matrix
+# $v0 -> Returns the average
+avgRow:
+	addi $sp, $sp, -28
+	sw $s0, 0($sp)
+	sw $s1, 4($sp)
+	sw $s2, 8($sp)
+	sw $s3, 12($sp)
+	sw $s4, 16($sp)
+	sw $s5, 20($sp)
+	sw $s6, 24($sp)
+	
+	move $s0, $a0 # $s0 is the start address of the array
+	move $s1, $a1 # $s1 is the dimension of the array
+	addi $s2, $0, 0 # Sum initially 0
+	addi $s3, $0, 1 # Iterator initially 1
+	mul $s5, $s1, $s1 # $s5 is the size of the array
+
+FindSum:
+	sle $s4, $s3, $s5
+	beq $s4, $0 endFindSum
+	
+	lw $s6, 0($s0) # Holds the current value
+	add $s2, $s2, $s6 # Update the sum
+	
+	addi $s3, $s3, 1 # Increment the iterator
+	addi $s0, $s0, 4 # Go to the next array location
+	j FindSum
+endFindSum:	
+	
+	div $v0, $s2, $s5 
+	
+	lw $s0, 0($sp)
+	lw $s1, 4($sp)
+	lw $s2, 8($sp)
+	lw $s3, 12($sp)
+	lw $s4, 16($sp)
+	lw $s5, 20($sp)
+	lw $s6, 24($sp)
+	addi $sp, $sp, 28
+	
+	jr $ra # Go back to the main memory
+	
+	
+	
+	
+# Function that finds the average of the matrix items in a column major order
+# $a0 -> Start address of the array
+# $a1 -> Dimension of the matrix
+# $v0 -> Returns the average
+avgCol:
+	addi $sp, $sp, -32
+	sw $s0, 0($sp)
+	sw $s1, 4($sp)
+	sw $s2, 8($sp)
+	sw $s3, 12($sp)
+	sw $s4, 16($sp)
+	sw $s5, 20($sp)
+	sw $s6, 24($sp)
+	sw $ra, 28($sp) # Also save the return address
+	
+	move $s0, $a0 # $s0 is the start address of the array
+	move $s1, $a1 # $s1 is the dimension of the array
+	addi $s2, $0, 1 # $s2 is the row index (i)
+	addi $s3, $0, 1 # $s3 is the column index (j)
+	add $s4, $0, $0 # $s4 is the summation
+	mul $s6, $s1, $s1 # $s6 is the size of the matrix
+	
+# Make decide according to the row index (i)
+outer:
+	bgt $s2, $s1, endOuter
+	
+# Make decide according to the column index (j)
+inner:
+	bgt $s3, $s1, endInner
+	
+	addi $t0, $s2, -1
+	sll $t0, $t0, 2 # $t0 -> (i - 1) * 4
+	
+	addi $t1, $s3, -1
+	mul $t1, $t1, $s1
+	sll $t1, $t1, 2 # $t1 -> (j - 1) * N * 4
+	
+	add $t3, $t0, $t1
+	add $t3, $s0, $t3 # $t3 is the effective array location
+	lw $t4, 0($t3) # $t4 is the current data
+	
+	add $s4, $s4, $t4 # Update the summation
+	addi $s3, $s3, 1 # Update j
+	j inner
+	
+endInner:
+	addi $s3, $0, 1 # Reset the column index (j)
+	addi $s2, $s2, 1 # Increment the row index (i)
+	j outer
+	
+endOuter:
+	
+	div $v0, $s4, $s6 # Put the average into the return register
+	
+	lw $s0, 0($sp)
+	lw $s1, 4($sp)
+	lw $s2, 8($sp)
+	lw $s3, 12($sp)
+	lw $s4, 16($sp)
+	lw $s5, 20($sp)
+	lw $s6, 24($sp)
+	lw $ra, 28($sp)
+	addi $sp, $sp, 32
+	
+	jr $ra # Go back to the main memory
+	
+	
+	
+	
+	
+	
+# Data Segment
+	.data
+	
+# Menu texts
+message: 	.asciiz "Select a menu option: "
+lines:		.asciiz "-----------------------------------------\n"
+menuText:	.asciiz "-------MENU-------\n"
+option1:	.asciiz "1-) Create matrix\n"
+option2:	.asciiz "2-) Display matrix\n"
+option3:	.asciiz "3-) Display an element\n"
+option4:	.asciiz "4-) Calculate average (Row-Major)\n"
+option5:	.asciiz "5-) Calculate average (Column-Major)\n"
+option6:	.asciiz "6-) Exit\n"
+
+# Option 1 texts
+getDim:		.asciiz "\nEnter the matrix dimension: "
+isCreated:	.asciiz "Matrix is created succesfully\n\n"
+
+# Option 2 texts
+dispMsg:	.asciiz "\n---Displaying the Matrix---\n"
+
+# Option 3 texts
+getRow:		.asciiz "\nEnter the row number: "
+getColumn:	.asciiz "Enter the column number: "
+getValue:	.asciiz "\nThe desired data is: "
+
+# Option 4 texts
+getAvgRow:	.asciiz "\nThe average value (Row-Major) is: "
+
+# Option 5 texts
+getAvgCol:	.asciiz "\nThe average value (Column-Major) is: "
+
+# Option 6 texts
+quit:		.asciiz "\nEnd of the program\n\n"
+endl:		.asciiz "\n"
+space:		.asciiz " "
+

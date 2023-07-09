@@ -1,0 +1,38 @@
+`timescale 1ns / 1ps
+
+module testbench();
+  
+  // Code snipped to generate waveform
+  initial begin
+	$dumpfile("dump.vcd");
+    $dumpvars(0);
+  end
+  
+  // Defining the variables
+  logic clk, reset, memwrite, alusrca, alusrcb, regwrite, branch, pcsrc, zero;
+  logic [1:0] jump, memtoreg, aluop, regdst;
+  logic [31:0] pc, instr, readdata, writedata, dataadr;
+  
+  
+  // Instantiating the device under test
+  new_top dut(clk, reset, memwrite, alusrca, alusrcb, regwrite, jump, branch,
+             memtoreg, aluop, regdst, pc, instr, readdata, writedata, dataadr,
+             pcsrc, zero);
+  
+  
+  // Start testing with asserting the reset signal initially
+  initial begin
+    clk <= 0;
+    reset <= 1; #10; 
+    reset <= 0;
+  end
+  
+  // Executing the tests using a for loop instead of an always block 
+  // to avoid infinite loop
+  initial begin
+    for (int i = 0; i < 100; i++) begin
+     	#10; clk = ~clk;
+    end
+  end
+  
+endmodule
